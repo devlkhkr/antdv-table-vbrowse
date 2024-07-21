@@ -8,17 +8,28 @@ This library helps with fast navigation and movement by searching data within an
 
 ---
 
-### 📌 Usage
+### 📚 Links
 
-기본 사용 | default usage | 默认用法
+📌 NPM: https://www.npmjs.com/package/antdv-table-vbrowse  
+📌 Github: https://github.com/devlkhkr/antdv-table-vbrowse.git
+
+📌 CodeSandbox(DEMO):
+
+---
+
+### 📚 Usage
+
+- 기본 사용 | default usage | 默认用法
 
 ```
+import { Table } from 'ant-design-vue';
 <Table v-antdv-table-vbrowse />
 ```
 
-옵션 사용 | Usage with options | 带选项的用法
+- 옵션 사용 | Usage with options | 带选项的用法
 
 ```
+import { Table } from 'ant-design-vue';
 <Table
 	v-antdv-table-vbrowse="{
 		active: true,
@@ -37,7 +48,7 @@ This library helps with fast navigation and movement by searching data within an
 >
 ```
 
-### 📌 API
+### 📚 API
 
 모든 속성은 optional 하며, 미입력시 default로 설정됩니다.  
 All properties are optional and will be set to default values if not provided.  
@@ -57,3 +68,11 @@ All properties are optional and will be set to default values if not provided.
 | moveable            | 검색영역 이동 가능 여부                                                                                      | Whether the search area is movable                                                                                                                                  | 搜索区域是否可移动                                                                                       | boolean                                                                             | true                   |
 | smoothScroll        | 다음 셀로 이동시 스크롤을 부드럽게 할 것인지 여부                                                            | Whether to enable smooth scrolling when moving to the next cell                                                                                                     | 移动到下一个单元格时是否启用平滑滚动                                                                     | boolean                                                                             | false                  |
 | loop                | - 마지막 검색결과에서 다음버튼 클릭시 처음으로 이동<br><br>- 첫 검색결과에서 이전버튼 클릭시 마지막으로 이동 | - Move to the first when clicking the next button on the last search result <br><br>- Move to the last when clicking the previous button on the first search result | - 在最后一个搜索结果上点击下一按钮时移动到第一个<br><br>- 在第一个搜索结果上点击上一按钮时移动到最后一个 | boolean                                                                             | false                  |
+
+---
+
+### 🔔 Caution
+
+- Table이 가지고 있는 Datasource에서만 탐색을 실행하기 때문에, 서버사이드에서 페이징 처리시 가져오지 않은 데이터에 대해서는 탐색하지 않습니다.  
+  Since the search is executed only within the datasource that the Table possesses, it does not search for data that has not been fetched during server-side pagination.  
+  由于搜索仅在 Table 拥有的数据源内执行，因此在服务器端分页时不会搜索尚未获取的数据。
