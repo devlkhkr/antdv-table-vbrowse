@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "ES6",
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "es6",
+      "ScriptHost" 
+    ],
+    "declaration": true,
+    "outDir": "./dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "types": ["node", "vue"],
+    "paths": {
+      "vue": ["./node_modules/vue"],
+      "@ant-design/icons-vue": ["./node_modules/@ant-design/icons-vue"],
+      "lodash-es": ["./node_modules/lodash-es"]
+    }
+  },
+  "include": ["src/**/*"]
+}

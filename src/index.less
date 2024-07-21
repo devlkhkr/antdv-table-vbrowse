@@ -1,0 +1,150 @@
+@keyframes horizontal-shaking {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25%,
+  75% {
+    transform: translateX(4px);
+  }
+
+  50% {
+    transform: translateX(-4px);
+  }
+}
+
+.antdv-table-vbrowse {
+  @transition-duration: 0.3s;
+
+  position: relative;
+
+  &.show-move-handle {
+    .antdv-table-vbrowse-move-handle {
+      opacity: 0.35;
+      pointer-events: all;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+
+  &.open {
+    .antdv-table-vbrowse-open-target {
+      max-width: 999px;
+    }
+
+    .antdv-table-vbrowse-search-area {
+      opacity: 1;
+    }
+  }
+
+  &-open-target {
+    max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    display: inline-block;
+    transition-duration: @transition-duration;
+  }
+
+  &-search-area {
+    display: inline-flex;
+    position: absolute;
+    align-items: center;
+    transition-duration: @transition-duration;
+    opacity: 0.5;
+
+    &:hover {
+      opacity: 1;
+    }
+
+    .shaker {
+      display: flex;
+      align-items: center;
+      border-radius: 8px;
+
+      &.shake {
+        animation: horizontal-shaking 0.25s;
+      }
+    }
+
+    input {
+      margin-left: 4px;
+      padding: 4px 8px;
+      height: 32px;
+
+      &:focus {
+        outline: unset;
+      }
+    }
+
+    button {
+      background-color: transparent;
+      cursor: pointer;
+      transition-duration: @transition-duration;
+      padding-inline: 1px;
+
+      &.antdv-table-vsearch-btn-search {
+        width: 32px;
+        height: 32px;
+      }
+
+      &.antdv-table-vsearch-btn-control {
+        margin-left: 8px;
+        padding-inline: 6px;
+        opacity: 0.5;
+
+        &:hover {
+          opacity: 1;
+        }
+
+        &:last-of-type {
+          margin-right: 8px;
+        }
+      }
+    }
+  }
+
+  &-divider {
+    display: inline-block;
+    width: 1px;
+    height: 16px;
+    background-color: #666;
+    vertical-align: sub;
+    margin: 0 12px;
+  }
+
+  &-search-info {
+    display: inline-block;
+    line-height: 32px;
+    max-width: 0;
+    transition: opacity 0.5s, max-width 0.5s;
+    white-space: nowrap;
+  }
+
+  &-loading {
+    position: absolute;
+    right: -28px;
+  }
+
+  &-move-handle {
+    display: inline-block;
+    width: 24px;
+    height: 2px;
+    background-color: #666;
+    border-radius: 8px;
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translate(-50%, 0);
+    cursor: move;
+    transition-duration: @transition-duration;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .ant-pagination-total-text {
+    color: #000;
+  }
+}
