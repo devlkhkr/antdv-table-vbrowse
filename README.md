@@ -1,14 +1,14 @@
-### 🔎 antdv-table-vbrowse
+## 🔎 antdv-table-vbrowse
 
 Vue3 Ant-design Table Component Virtual browsing Library
 
-antdv 테이블 내의 데이터를 검색하여 빠른 탐색과 이동을 도와주는 라이브러리 입니다.
-This library helps with fast navigation and movement by searching data within an Ant Design Vue table.
+antdv 테이블 내의 데이터를 검색하여 빠른 탐색과 이동을 도와주는 라이브러리 입니다.  
+This library helps with fast navigation and movement by searching data within an Ant Design Vue table.  
 这是一个通过搜索 Ant Design Vue 表格中的数据来帮助快速导航和移动的库。
 
 ---
 
-##### 📌 Usage
+### 📌 Usage
 
 기본 사용 | default usage | 默认用法
 
@@ -37,10 +37,10 @@ This library helps with fast navigation and movement by searching data within an
 >
 ```
 
-##### 📌 API
+### 📌 API
 
-모든 속성은 optional 하며, 미입력시 default로 설정됩니다.
-All properties are optional and will be set to default values if not provided.
+모든 속성은 optional 하며, 미입력시 default로 설정됩니다.  
+All properties are optional and will be set to default values if not provided.  
 所有属性都是可选的，如果未提供，则将设置为默认值。
 
 | Property            | Description(KR)                                                                                              | Description(EN)                                                                                                                                                     | Description(CN)                                                                                          | Type                                                                                | Default                |
