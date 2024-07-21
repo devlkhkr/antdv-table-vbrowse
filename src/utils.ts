@@ -192,14 +192,14 @@ export const openSearch = (
   }
   highlightCells(el, binding);
 
-  el.classList.add("open");
+  el.classList.add("antdv-table-vbrowse-opened");
 };
 
 // 검색 닫기
 export const closeSearch = (el: AntdvTableDOM) => {
   el.isOpened = false;
   clearCellColor(el);
-  el.classList.remove("open");
+  el.classList.remove("antdv-table-vbrowse-opened");
 };
 
 // 숫자를 입력하여 searched data의 해당 index로 바로 이동
@@ -401,10 +401,7 @@ export function setLoading(el: AntdvTableDOM, onFlag: boolean) {
   loading!.style.display = onFlag ? "inline-block" : "none";
 }
 
-const getPositionStyle = (
-  position: Position,
-  defaultOpen: boolean
-): Record<string, string> => {
+const getPositionStyle = (position: Position): Record<string, string> => {
   const [horizontal, vertical] = position.split(" ") as [string, string];
   const style: Record<string, string> = {};
 
@@ -420,9 +417,9 @@ const getPositionStyle = (
   }
 
   if (vertical === "top") {
-    style.top = defaultOpen ? CONFIG_STYLE.POS_Y : CONFIG_STYLE.POS_H;
+    style.top = CONFIG_STYLE.POS_Y;
   } else if (vertical === "bottom") {
-    style.bottom = defaultOpen ? CONFIG_STYLE.POS_Y : CONFIG_STYLE.POS_H;
+    style.bottom = CONFIG_STYLE.POS_Y;
   }
 
   return style;
@@ -430,10 +427,9 @@ const getPositionStyle = (
 
 export const getStyle = (binding: AntdvTableVbrowseBinding) => {
   const position: Position = validatePosition(binding.value.position);
-  const defaultOpen: boolean = binding.value.defaultOpen ?? false;
 
   return {
-    ...getPositionStyle(position, defaultOpen),
+    ...getPositionStyle(position),
   };
 };
 
@@ -782,15 +778,9 @@ const createDownButton = (
 };
 
 // bind keyboard event for open and close
-export const addGlobalKeyboardListener = (
-  el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
-) => {
+export const addGlobalKeyboardListener = (el: AntdvTableDOM) => {
   const keydownHandler = (event: KeyboardEvent) => {
-    if (event.ctrlKey && event.shiftKey && event.key === "F") {
-      event.preventDefault();
-      openSearch(el, binding);
-    } else if (event.key === "Escape") {
+    if (event.key === "Escape") {
       closeSearch(el);
     }
   };

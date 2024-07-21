@@ -38,12 +38,16 @@ export const antdvTableVbrowse: ObjectDirective<
     validateColumns(columns);
     setActiveColumns(el, columns);
     createSearchArea(el, binding);
-    addGlobalKeyboardListener(el, binding);
+    addGlobalKeyboardListener(el);
   },
-  beforeMount(el) {
+  beforeMount(el, binding: AntdvTableVbrowseBinding) {
     if (!el.active) return;
+    const defaultOpen = binding.value.defaultOpen ?? false;
     // el에 클래스 추가
     el.classList.add("antdv-table-vbrowse");
+    if (defaultOpen) {
+      el.classList.add("antdv-table-vbrowse-opened");
+    }
   },
   beforeUpdate(el) {
     if (!el.active) return;
