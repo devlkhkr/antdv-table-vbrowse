@@ -23,6 +23,7 @@
     outline: 1px solid #00000050;
   }
 
+
   &.show-move-handle {
     .antdv-table-vbrowse-move-handle,
     .antdv-table-vbrowse-fixed-toggle {
@@ -93,6 +94,8 @@
       margin-left: 4px;
       padding: 4px 8px;
       height: 32px;
+      border: 0;
+      box-sizing: border-box;
 
       &:focus {
         outline: unset;
@@ -104,6 +107,7 @@
       cursor: pointer;
       transition-duration: @transition-duration;
       padding-inline: 1px;
+      border: 0;
 
       &.antdv-table-vsearch-btn-search {
         width: 32px;

@@ -58,7 +58,6 @@ export const antdvTableVbrowse: ObjectDirective<
   },
   beforeUpdate(el) {
     if (!el.active) return;
-    setLoading(el, true);
   },
   /**
    * 컴포넌트의 VNode가 업데이트될 때마다 호출
@@ -89,8 +88,6 @@ export const antdvTableVbrowse: ObjectDirective<
     ) {
       updateMemoizedFunctions(instance, vnode);
     }
-
-    setLoading(el, false);
   },
   /**
    * unmounted 훅은 컴포넌트의 VNode가 제거될 때 호출
