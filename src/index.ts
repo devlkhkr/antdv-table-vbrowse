@@ -3,6 +3,7 @@
 import { ComponentPublicInstance, ObjectDirective, type App } from "vue";
 import "./index.css";
 import {
+  IAntdvTableVNode,
   AntdvTableVbrowseOptions,
   AntdvTableVbrowseBinding,
   AntdvTableDOM,
@@ -15,6 +16,9 @@ import {
   setActiveColumns,
   createSearchArea,
   addGlobalKeyboardListener,
+  updateMemoizedFunctions,
+  memoizedGetColumns,
+  memoizedGetDataSource,
 } from "./utils";
 
 export const antdvTableVbrowse: ObjectDirective<
@@ -27,17 +31,20 @@ export const antdvTableVbrowse: ObjectDirective<
    * @param binding
    * @returns
    */
-  created(el, binding: AntdvTableVbrowseBinding) {
+  created(el, binding: AntdvTableVbrowseBinding, vnode: IAntdvTableVNode) {
     el.active = binding.value.active ?? true;
     if (!el.active) return;
 
     const instance: ComponentPublicInstance<any> = binding.instance;
-    const columns = instance.getColumns();
+    const columns =
+      typeof instance.getColumns === "function"
+        ? instance.getColumns()
+        : vnode.ctx?.ctx?.columns;
 
     initializeElement(el, binding);
     validateColumns(columns);
     setActiveColumns(el, columns);
-    createSearchArea(el, binding);
+    createSearchArea(el, binding, vnode);
     addGlobalKeyboardListener(el);
   },
   beforeMount(el, binding: AntdvTableVbrowseBinding) {
@@ -57,10 +64,32 @@ export const antdvTableVbrowse: ObjectDirective<
    * 컴포넌트의 VNode가 업데이트될 때마다 호출
    * @param el
    * @param binding
+   * @param vnode
    */
-  updated(el, binding: AntdvTableVbrowseBinding) {
+  updated(el, binding: AntdvTableVbrowseBinding, vnode: IAntdvTableVNode) {
     if (!el.active) return;
-    setActiveColAndHighlightCell(el, binding);
+    setActiveColAndHighlightCell(el, binding, vnode);
+    updateMemoizedFunctions(binding.instance, vnode);
+
+    const instance: ComponentPublicInstance<any> = binding.instance;
+    const newColumns =
+      instance.getColumns === "function"
+        ? instance.getColumns()
+        : vnode.ctx?.ctx?.columns;
+    const newDataSource =
+      typeof instance.getDataSource === "function"
+        ? instance.getDataSource()
+        : vnode.ctx?.ctx?.dataSource;
+
+    if (
+      JSON.stringify(newColumns) !==
+        JSON.stringify(memoizedGetColumns(instance, vnode)) ||
+      JSON.stringify(newDataSource) !==
+        JSON.stringify(memoizedGetDataSource(instance, vnode))
+    ) {
+      updateMemoizedFunctions(instance, vnode);
+    }
+
     setLoading(el, false);
   },
   /**

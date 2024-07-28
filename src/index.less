@@ -19,8 +19,13 @@
 
   position: relative;
 
+  &.focused {
+    outline: 1px solid #00000050;
+  }
+
   &.show-move-handle {
-    .antdv-table-vbrowse-move-handle {
+    .antdv-table-vbrowse-move-handle,
+    .antdv-table-vbrowse-fixed-toggle {
       opacity: 0.35;
       pointer-events: all;
 
@@ -37,6 +42,21 @@
 
     .antdv-table-vbrowse-search-area {
       opacity: 1;
+    }
+  }
+
+  &-fixed-toggle {
+    position: absolute;
+    left: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    transition-duration: @transition-duration;
+    pointer-events: none;
+    opacity: 0;
+
+    input {
+      display: none;
     }
   }
 
@@ -69,7 +89,7 @@
       }
     }
 
-    input {
+    .antdv-table-vbrowse-input {
       margin-left: 4px;
       padding: 4px 8px;
       height: 32px;
@@ -130,14 +150,10 @@
 
   &-move-handle {
     display: inline-block;
-    width: 24px;
-    height: 2px;
-    background-color: #666;
-    border-radius: 8px;
     position: absolute;
-    top: -6px;
-    left: 50%;
-    transform: translate(-50%, 0);
+    right: -16px;
+    top: 50%;
+    transform: translateY(-50%);
     cursor: move;
     transition-duration: @transition-duration;
     pointer-events: none;

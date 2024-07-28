@@ -5,33 +5,65 @@ import {
   IFilteredDataIndex,
   IRowCol,
   Position,
+  IAntdvTableVNode,
 } from "./types";
 import { debounce, memoize } from "lodash-es";
 import { CONFIG_MSG, CONFIG_STYLE } from "./config";
 import {
   CloseOutlined,
   DownCircleOutlined,
+  HolderOutlined,
   LoadingOutlined,
+  PushpinFilled,
+  PushpinOutlined,
   SearchOutlined,
   UpCircleOutlined,
 } from "@ant-design/icons-vue";
 
 // 컬럼 정보를 메모이제이션하여 성능 최적화
-const memoizedGetColumns = memoize((instance: ComponentPublicInstance<any>) =>
-  instance.getColumns()
+export const memoizedGetColumns = memoize(
+  (instance: ComponentPublicInstance<any>, vnode: IAntdvTableVNode) =>
+    typeof instance.getColumns === "function"
+      ? instance.getColumns()
+      : vnode.ctx?.ctx?.columns
 );
+
 // 데이터 소스를 메모이제이션하여 성능 최적화
-const memoizedGetDataSource = memoize(
-  (instance: ComponentPublicInstance<any>) => instance.getDataSource()
+export const memoizedGetDataSource = memoize(
+  (instance: ComponentPublicInstance<any>, vnode: IAntdvTableVNode) =>
+    typeof instance.getDataSource === "function"
+      ? instance.getDataSource()
+      : vnode.ctx?.ctx?.dataSource
 );
+
+export const updateMemoizedFunctions = (
+  instance: ComponentPublicInstance<any>,
+  vnode: IAntdvTableVNode
+) => {
+  if (
+    memoizedGetColumns.cache &&
+    typeof memoizedGetColumns.cache.clear === "function"
+  ) {
+    memoizedGetColumns.cache.clear();
+  }
+  if (
+    memoizedGetDataSource.cache &&
+    typeof memoizedGetDataSource.cache.clear === "function"
+  ) {
+    memoizedGetDataSource.cache.clear();
+  }
+  memoizedGetColumns(instance, vnode);
+  memoizedGetDataSource(instance, vnode);
+};
 
 // 활성 컬럼을 설정하고 셀을 하이라이트하는 함수
 export const setActiveColAndHighlightCell = (
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
   const instance: ComponentPublicInstance<any> = binding.instance;
-  const columns = memoizedGetColumns(instance);
+  const columns = memoizedGetColumns(instance, vnode);
 
   // 숨겨지지 않고 dataIndex가 문자열인 컬럼만 필터링하여 활성 컬럼으로 설정
   el.activeCol = columns
@@ -43,7 +75,7 @@ export const setActiveColAndHighlightCell = (
 
   // 검색창이 열려있으면 셀 하이라이트 실행
   if (el.isOpened) {
-    requestAnimationFrame(() => highlightCells(el, binding));
+    requestAnimationFrame(() => highlightCells(el, binding, vnode));
   }
 };
 
@@ -54,16 +86,19 @@ export const setActiveColAndHighlightCell = (
  */
 const highlightCells = (
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
   if (!el.filteredDataIndex) return; // 검색 결과가 없으면 return
   const instance: ComponentPublicInstance<any> = binding.instance; // 컴포넌트 인스턴스
-  let pagination = instance.getPaginationRef(); // 페이징 정보
-  const _dataSource = instance.getDataSource();
+  let pagination =
+    typeof instance.getPaginationRef === "function"
+      ? instance.getPaginationRef()
+      : binding.value.pagination; // 페이징 정보
+  const _dataSource = memoizedGetDataSource(binding.instance, vnode);
   const smoothScroll = binding.value.smoothScroll || false;
 
   if (!pagination) {
-    const _dataSource = memoizedGetDataSource(binding.instance);
     pagination = {
       current: 1,
       pageSize: _dataSource.length,
@@ -88,27 +123,39 @@ const highlightCells = (
     pgFilterdData.forEach((fd) => {
       fd.matchedCellCols.forEach((colIdx) => {
         // 색이 칠해져야 하는 cell 검색
-        const rowIdx = fd.rowIndex - pgStartRowIdx + 2;
-        const cell = el.querySelector(
-          `tbody .ant-table-row:nth-child(${rowIdx}) .ant-table-cell:nth-child(${
-            colIdx + 1
-          })`
-        ) as HTMLElement; // 검색된 cell
-        if (cell) {
-          cell.setAttribute("data-searched-idx", `${fd.rowIndex}_${colIdx}`);
-          // cell이 존재하면
-          if (el.targetDataKey === `${fd.rowIndex}_${colIdx}`) {
-            // 현재 타겟 cell이면 targetColor로 색상 변경
-            cell.style.backgroundColor =
-              binding.value.targetCellBgColor || "#ff000045";
+        const targetRowIndex = fd.rowIndex - pgStartRowIdx;
+
+        // tbody에서 .ant-table-row를 모두 선택하고, .ant-table-measure-row를 제외한 실제 행을 찾습니다.
+        const rows = el.querySelectorAll(
+          "tbody .ant-table-row:not(.ant-table-measure-row)"
+        );
+
+        // 실제 행 중에서 targetRowIndex에 해당하는 행을 찾습니다.
+        const row = rows[targetRowIndex] as HTMLElement;
+
+        if (row) {
+          const cell = row.querySelector(
+            `td.ant-table-cell:nth-child(${colIdx + 1})`
+          ) as HTMLElement;
+          if (cell) {
+            cell.setAttribute("data-searched-idx", `${fd.rowIndex}_${colIdx}`);
+            // cell이 존재하면
+            if (el.targetDataKey === `${fd.rowIndex}_${colIdx}`) {
+              // 현재 타겟 cell이면 targetColor로 색상 변경
+              cell.style.backgroundColor =
+                binding.value.targetCellBgColor || "#ff000045";
+            } else {
+              // el.targetIdx를 계산하기 위한 targetCell용 data-searched-idx 속성 추가
+              cell.style.backgroundColor =
+                binding.value.searchedCellBgColor || "#ffff0035";
+            }
           } else {
-            // el.targetIdx를 계산하기 위한 targetCell용 data-searched-idx 속성 추가
-            cell.style.backgroundColor =
-              binding.value.searchedCellBgColor || "#ffff0035";
+            // cell이 존재하지 않으면
+            console.log(targetRowIndex, colIdx + 1);
+            console.error("cell not found");
           }
         } else {
-          // cell이 존재하지 않으면
-          console.error("cell not found");
+          console.error("row not found");
         }
       });
     });
@@ -132,12 +179,17 @@ const highlightCells = (
 
 // 검색 키워드가 변경되었을 때 호출되는 함수
 const handleKeywordChange = debounce(
-  (e: Event, el: AntdvTableDOM, binding: AntdvTableVbrowseBinding) => {
+  (
+    e: Event,
+    el: AntdvTableDOM,
+    binding: AntdvTableVbrowseBinding,
+    vnode: IAntdvTableVNode
+  ) => {
     const searchKeyword = (e.target as HTMLInputElement).value;
     if (searchKeyword === el.searchKeyword) return;
 
     el.searchKeyword = searchKeyword;
-    const _dataSource = memoizedGetDataSource(binding.instance);
+    const _dataSource = memoizedGetDataSource(binding.instance, vnode);
 
     const filteredDataIndex: IFilteredDataIndex[] = [];
     let totalMatches = 0;
@@ -165,10 +217,10 @@ const handleKeywordChange = debounce(
     el.filteredDataIndex = filteredDataIndex;
     el.totalMatches = totalMatches;
 
-    setSearchInfoTxt(el, binding, 0, searchKeyword);
+    setSearchInfoTxt(el, binding, vnode, 0, searchKeyword);
 
     if (filteredDataIndex.length > 0) {
-      goNext(el, binding);
+      goNext(el, binding, vnode);
     } else {
       clearCellColor(el);
     }
@@ -179,7 +231,8 @@ const handleKeywordChange = debounce(
 // 검색 열기
 export const openSearch = (
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
   el.isOpened = true;
   const searchArea = el.querySelector(
@@ -190,7 +243,7 @@ export const openSearch = (
   if (input) {
     input.focus();
   }
-  highlightCells(el, binding);
+  highlightCells(el, binding, vnode);
 
   el.classList.add("antdv-table-vbrowse-opened");
 };
@@ -206,14 +259,15 @@ export const closeSearch = (el: AntdvTableDOM) => {
 const handleJumperChange = (
   event: Event,
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
   let jumpTo = parseInt((event.target as HTMLInputElement).value);
 
   // 입력 받은 값이 숫자가 아니면 기존 targetIdx 값으로 롤백
   if (isNaN(jumpTo)) {
     el.targetIdx -= 1;
-    goNext(el, binding);
+    goNext(el, binding, vnode);
     return;
   }
 
@@ -222,13 +276,14 @@ const handleJumperChange = (
   jumpTo = jumpTo < 1 ? 1 : jumpTo;
 
   el.targetIdx = jumpTo - 1;
-  goNext(el, binding);
+  goNext(el, binding, vnode);
 };
 
 // 검색결과 text 업데이트
 const setSearchInfoTxt = (
   el: AntdvTableDOM,
   binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode,
   targetIdx: number,
   searchKeyword: string,
   isEnd?: boolean
@@ -253,7 +308,7 @@ const setSearchInfoTxt = (
   jumperInput.style.backgroundColor = pallete.backgroundColor;
   jumperInput.style.color = pallete.color;
   jumperInput.onchange = (event) => {
-    handleJumperChange(event, el, binding);
+    handleJumperChange(event, el, binding, vnode);
   };
 
   searchInfoSpan!.innerHTML = "";
@@ -290,16 +345,19 @@ export const doShake = (el: AntdvTableDOM) => {
 // 다음 검색 결과로 이동
 export const goNext = (
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
   const instance: ComponentPublicInstance<any> = binding.instance; // 컴포넌트 인스턴스
-  let pagination = instance.getPaginationRef(); // 페이징 정보
+  let pagination =
+    typeof instance.getPaginationRef === "function"
+      ? instance.getPaginationRef()
+      : binding.value.pagination; // 페이징 정보
   let singlePage = false;
-  const setPagination = instance.setPagination; // 페이징 정보 변경 메소드
 
   if (!pagination) {
     singlePage = true;
-    const _dataSource = memoizedGetDataSource(binding.instance);
+    const _dataSource = memoizedGetDataSource(binding.instance, vnode);
     pagination = {
       current: 1,
       pageSize: _dataSource.length,
@@ -320,7 +378,7 @@ export const goNext = (
     isEnd = false;
   }
 
-  setSearchInfoTxt(el, binding, targetIdx, searchKeyword, isEnd);
+  setSearchInfoTxt(el, binding, vnode, targetIdx, searchKeyword, isEnd);
 
   if (isEnd) return; // 마지막 검색결과면 종료
 
@@ -341,14 +399,19 @@ export const goNext = (
   }
 
   // page가 넘어가야하는 경우 페이징 정보 변경
+  const setPagination = instance.setPagination; // 페이징 정보 변경 메소드
   if (page !== pagination.current && !singlePage) {
-    setPagination({
-      ...pagination,
-      current: page,
-    });
+    if (setPagination) {
+      setPagination({
+        ...pagination,
+        current: page,
+      });
+    } else {
+      pagination.current = page;
+    }
   } else {
     requestAnimationFrame(() => {
-      setActiveColAndHighlightCell(el, binding);
+      setActiveColAndHighlightCell(el, binding, vnode);
     });
   }
 
@@ -401,11 +464,14 @@ export function setLoading(el: AntdvTableDOM, onFlag: boolean) {
   loading!.style.display = onFlag ? "inline-block" : "none";
 }
 
-const getPositionStyle = (position: Position): Record<string, string> => {
+const getPositionStyle = (
+  binding: AntdvTableVbrowseBinding
+): Record<string, string> => {
+  const position: Position = validatePosition(binding.value.position);
   const [horizontal, vertical] = position.split(" ") as [string, string];
   const style: Record<string, string> = {};
 
-  style.zIndex = "99";
+  style.zIndex = "1"; // 초기값은 absolute이므로 1
 
   if (horizontal === "left") {
     style.left = CONFIG_STYLE.POS_X;
@@ -423,14 +489,6 @@ const getPositionStyle = (position: Position): Record<string, string> => {
   }
 
   return style;
-};
-
-export const getStyle = (binding: AntdvTableVbrowseBinding) => {
-  const position: Position = validatePosition(binding.value.position);
-
-  return {
-    ...getPositionStyle(position),
-  };
 };
 
 export const getPallete = (binding: AntdvTableVbrowseBinding) => {
@@ -489,24 +547,26 @@ export const setActiveColumns = (el: AntdvTableDOM, columns: any[]) => {
 
 export const createSearchArea = (
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
-  const searchAreaElement = createSearchAreaVNode(el, binding);
+  const searchAreaElement = createSearchAreaVNode(el, binding, vnode);
   el.appendChild(searchAreaElement);
 };
 
 const createSearchAreaVNode = (
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
-  const moveable = binding.value.moveable ?? true;
+  const movable = binding.value.movable ?? true;
   let hideHandleTimeoutId: number | null = null;
 
   const searchArea = h(
     "div",
     {
       class: "antdv-table-vbrowse-search-area",
-      style: getStyle(binding),
+      style: getPositionStyle(binding),
       onMouseenter: () => {
         if (hideHandleTimeoutId !== null) {
           clearTimeout(hideHandleTimeoutId);
@@ -522,13 +582,13 @@ const createSearchAreaVNode = (
       },
     },
     h("div", { class: "shaker", style: getPallete(binding) }, [
-      createSearchButton(el, binding),
+      createSearchButton(el, binding, vnode),
       h("div", { class: "antdv-table-vbrowse-open-target" }, [
-        createSearchInput(el, binding),
+        createSearchInput(el, binding, vnode),
         createDivider(),
         createSearchInfo(),
-        createUpButton(el, binding),
-        createDownButton(el, binding),
+        createUpButton(el, binding, vnode),
+        createDownButton(el, binding, vnode),
         createCloseButton(el),
         createLoadingIcon(),
       ]),
@@ -540,9 +600,11 @@ const createSearchAreaVNode = (
   const searchAreaElement = container.firstChild as HTMLElement;
 
   // Create move handle and append to the search area
-  if (moveable) {
+  if (movable) {
     const moveHandle = createMoveHandle(el, searchAreaElement);
+    const fixedHandle = createFixedToggle(el, binding, searchAreaElement);
     searchAreaElement.appendChild(moveHandle);
+    searchAreaElement.appendChild(fixedHandle);
   }
 
   return searchAreaElement;
@@ -550,13 +612,20 @@ const createSearchAreaVNode = (
 
 const createSearchButton = (
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
   return h(
     "button",
     {
       class: "antdv-table-vsearch-btn-search",
-      onClick: () => openSearch(el, binding),
+      onClick: () => openSearch(el, binding, vnode),
+      // onMouseenter: () => {
+      //   el.classList.add('focused');
+      // },
+      // onMouseleave: () => {
+      //   el.classList.remove('focused');
+      // },
     },
     h(SearchOutlined)
   );
@@ -564,15 +633,17 @@ const createSearchButton = (
 
 const createSearchInput = (
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
   return h("input", {
     lazy: false,
     placeholder: binding.value.placeholder || CONFIG_MSG.PLACEHOLDER,
+    class: "antdv-table-vbrowse-input",
     style: getPallete(binding),
-    onInput: (e) => handleKeywordChange(e, el, binding),
+    onInput: (e) => handleKeywordChange(e, el, binding, vnode),
     onKeydown: (e) => {
-      if ((e as KeyboardEvent).keyCode == 13) goNext(el, binding);
+      if ((e as KeyboardEvent).keyCode == 13) goNext(el, binding, vnode);
     },
   });
 };
@@ -594,13 +665,14 @@ const createSearchInfo = () => {
 
 const createUpButton = (
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
   return h(
     "button",
     {
       class: "antdv-table-vsearch-btn-control",
-      onClick: () => handleUpButtonClick(el, binding),
+      onClick: () => handleUpButtonClick(el, binding, vnode),
     },
     h(UpCircleOutlined)
   );
@@ -628,6 +700,7 @@ const createLoadingIcon = () => {
 // create move handle
 const createMoveHandle = (el: AntdvTableDOM, searchArea: HTMLElement) => {
   const moveHandle = document.createElement("span");
+  render(h(HolderOutlined), moveHandle);
   moveHandle.className = "antdv-table-vbrowse-move-handle";
   moveHandle.style.cursor = "move";
   moveHandle.style.userSelect = "none";
@@ -678,11 +751,13 @@ const createMoveHandle = (el: AntdvTableDOM, searchArea: HTMLElement) => {
     let newY = event.clientY - startY;
 
     // 테이블 영역 내로 제한
-    const tableRect = el.getBoundingClientRect();
+    const movableRect = el.fixed
+      ? document.body.getBoundingClientRect()
+      : el.getBoundingClientRect();
     const searchRect = searchArea.getBoundingClientRect();
 
-    newX = Math.max(0, Math.min(newX, tableRect.width - searchRect.width));
-    newY = Math.max(0, Math.min(newY, tableRect.height - searchRect.height));
+    newX = Math.max(0, Math.min(newX, movableRect.width - searchRect.width));
+    newY = Math.max(0, Math.min(newY, movableRect.height - searchRect.height));
 
     searchArea.style.left = `${newX}px`;
     searchArea.style.top = `${newY}px`;
@@ -714,18 +789,20 @@ const createMoveHandle = (el: AntdvTableDOM, searchArea: HTMLElement) => {
     }
 
     // 화면 밖으로 나가지 않도록 위치 조정
-    const tableRect = el.getBoundingClientRect();
+    const movableRect = el.fixed
+      ? document.body.getBoundingClientRect()
+      : el.getBoundingClientRect();
     const searchRect = searchArea.getBoundingClientRect();
 
-    const tableCenterX = tableRect.left + tableRect.width / 2;
+    const tableCenterX = movableRect.left + movableRect.width / 2;
     const searchCenterX = searchRect.left + searchRect.width / 2;
 
     if (searchCenterX < tableCenterX) {
-      searchArea.style.left = `${searchRect.left - tableRect.left}px`;
+      searchArea.style.left = `${searchRect.left - movableRect.left}px`;
       searchArea.style.right = "";
     } else {
       searchArea.style.left = "";
-      searchArea.style.right = `${tableRect.right - searchRect.right}px`;
+      searchArea.style.right = `${movableRect.right - searchRect.right}px`;
     }
 
     isDragging = false;
@@ -743,19 +820,70 @@ const createMoveHandle = (el: AntdvTableDOM, searchArea: HTMLElement) => {
   return moveHandle;
 };
 
+const createFixedToggle = (
+  el: AntdvTableDOM,
+  binding: AntdvTableVbrowseBinding,
+  searchArea: HTMLElement
+) => {
+  // Create fixed toggle button
+  const toggleLabelWrap = document.createElement("label");
+  const toggleStatusIcon = document.createElement("span");
+
+  render(h(PushpinOutlined), toggleStatusIcon);
+
+  toggleLabelWrap.className = "antdv-table-vbrowse-fixed-toggle";
+
+  const fixedToggle = document.createElement("input");
+  fixedToggle.type = "checkbox";
+  render(h(PushpinOutlined), fixedToggle);
+
+  // fixedToggle의 checked 상태에 따라 searchArea의 position 변경
+  fixedToggle.addEventListener("change", () => {
+    const searchAreaRect = searchArea.getBoundingClientRect();
+    el.fixed = fixedToggle.checked;
+    searchArea.style.transitionDuration = "unset";
+
+    toggleStatusIcon.innerHTML = "";
+    if (fixedToggle.checked) {
+      searchArea.style.position = "fixed";
+      searchArea.style.zIndex = binding.value.zIndex?.toString() ?? "999";
+      searchArea.style.right = "";
+      searchArea.style.bottom = "";
+      searchArea.style.top = `${searchAreaRect.top}px`;
+      searchArea.style.left = `${searchAreaRect.left}px`;
+      render(h(PushpinFilled), toggleStatusIcon);
+    } else {
+      searchArea.style.position = "absolute";
+      const defaultPosition = getPositionStyle(binding);
+      searchArea.style.zIndex = "1";
+      searchArea.style.left = defaultPosition.left || "";
+      searchArea.style.right = defaultPosition.right || "";
+      searchArea.style.top = defaultPosition.top || "";
+      searchArea.style.bottom = defaultPosition.bottom || "";
+      render(h(PushpinOutlined), toggleStatusIcon);
+    }
+  });
+
+  toggleLabelWrap.appendChild(fixedToggle);
+  toggleLabelWrap.appendChild(toggleStatusIcon);
+
+  return toggleLabelWrap;
+};
+
 // up button click event handler
 const handleUpButtonClick = (
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
   if (el.targetIdx !== 1) {
     el.targetIdx -= 2;
-    goNext(el, binding);
+    goNext(el, binding, vnode);
   } else {
     const isLoop = binding.value.loop || false;
     if (isLoop) {
       el.targetIdx = el.totalMatches - 1;
-      goNext(el, binding);
+      goNext(el, binding, vnode);
     } else {
       doShake(el);
     }
@@ -765,13 +893,14 @@ const handleUpButtonClick = (
 // down button click event handler
 const createDownButton = (
   el: AntdvTableDOM,
-  binding: AntdvTableVbrowseBinding
+  binding: AntdvTableVbrowseBinding,
+  vnode: IAntdvTableVNode
 ) => {
   return h(
     "button",
     {
       class: "antdv-table-vsearch-btn-control",
-      onClick: () => goNext(el, binding),
+      onClick: () => goNext(el, binding, vnode),
     },
     h(DownCircleOutlined)
   );
