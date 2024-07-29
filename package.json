@@ -1,6 +1,6 @@
 {
   "name": "antdv-table-vbrowse",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "Vue3 Ant-design Table Component Virtual browsing Library",
   "main": "dist/index.js",
   "type": "module",
