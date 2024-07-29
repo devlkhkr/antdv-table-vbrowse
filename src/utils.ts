@@ -590,7 +590,7 @@ const createSearchAreaVNode = (
         createUpButton(el, binding, vnode),
         createDownButton(el, binding, vnode),
         createCloseButton(el),
-        createLoadingIcon(),
+        // createLoadingIcon(),
       ]),
     ])
   );
